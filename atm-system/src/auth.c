@@ -2,22 +2,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
+#include <bcrypt.h>
 #include "header.h"
 
 char *USERS = "./data/users.txt";
 
-// Define the User struct (you may already have this in header.h)
-// struct User {
-//     int id;
-//     char name[50];      // Use a fixed size for simplicity
-//     char password[50];  // Use a fixed size for simplicity
-// };
+// Define the User struct
+struct User {
+    int id;
+    char name[50];
+    char password[60]; // Increased size for hashed passwords
+};
 
 // Function to check if a username already exists in users.txt
 int checkUniqueName(const char* name) {
     FILE *file = fopen(USERS, "r");
     if (!file) {
-        printf("Error opening users.txt\n");
+        perror("Error opening users.txt");
         return -1;
     }
 
@@ -36,9 +37,9 @@ int checkUniqueName(const char* name) {
 void registerUser() {
     char name[50];
     char password[50];
-
+    
     printf("Enter username: ");
-    scanf("%s", name);
+    scanf("%49s", name); // Limit input size for security
 
     // Check if the username already exists
     if (checkUniqueName(name) == 0) {
@@ -47,12 +48,17 @@ void registerUser() {
     }
 
     printf("Enter password: ");
-    scanf("%s", password);
+    scanf("%49s", password); // Limit input size for security
+
+    // Hash the password
+    char hashedPassword[60];
+    bcrypt_gensalt(12, hashedPassword); // Generate a salt for hashing
+    bcrypt_hashpw(password, hashedPassword); // Hash the password
 
     // Open the users.txt file for appending the new user
     FILE *file = fopen(USERS, "a+");
     if (!file) {
-        printf("Error opening users.txt\n");
+        perror("Error opening users.txt");
         return;
     }
 
@@ -64,22 +70,54 @@ void registerUser() {
     }
 
     // Write the new user to the file
-    fprintf(file, "%d %s %s\n", newId, name, password);
+    fprintf(file, "%d %s %s\n", newId, name, hashedPassword);
 
     printf("User %s registered successfully with ID %d.\n", name, newId);
     
     fclose(file);  // Close the file
 }
 
-// Existing loginMenu function
-void loginMenu(char a[50], char pass[50]) {
+// Function to handle user login
+int loginUser(const char* username, const char* password) {
+    FILE *file = fopen(USERS, "r");
+    if (!file) {
+        perror("Error opening users.txt");
+        return -1;
+    }
+
+    struct User userChecker;
+    while (fscanf(file, "%d %s %s", &userChecker.id, userChecker.name, userChecker.password) != EOF) {
+        if (strcmp(userChecker.name, username) == 0) {
+            fclose(file);
+            // Check the hashed password
+            if (bcrypt_checkpw(password, userChecker.password) == 0) {
+                printf("Login successful! Welcome, %s.\n", username);
+                return 1; // Successful login
+            } else {
+                printf("Error: Incorrect password.\n");
+                return 0; // Incorrect password
+            }
+        }
+    }
+
+    fclose(file);
+    printf("Error: User not found.\n");
+    return 0; // User not found
+}
+
+// Function to handle user input for login
+void loginMenu() {
+    char username[50];
+    char password[50];
+
     struct termios oflags, nflags;
 
     system("clear");
     printf("\n\n\n\t\t\t\t   Bank Management System\n\t\t\t\t\t User Login:");
-    scanf("%s", a);
+    printf("\n\nEnter username: ");
+    scanf("%49s", username); // Limit input size for security
 
-    // disabling echo
+    // Disable echo for password input
     tcgetattr(fileno(stdin), &oflags);
     nflags = oflags;
     nflags.c_lflag &= ~ECHO;
@@ -90,39 +128,17 @@ void loginMenu(char a[50], char pass[50]) {
         exit(1);
     }
 
-    printf("\n\n\n\n\n\t\t\t\tEnter the password to login:");
-    scanf("%s", pass);
+    printf("\nEnter password: ");
+    scanf("%49s", password); // Limit input size for security
 
-    // restore terminal
+    // Restore terminal
     if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
         perror("tcsetattr");
         exit(1);
     }
-}
 
-const char *getPassword(struct User u) {
-    FILE *fp;
-    struct User userChecker;
-
-    if ((fp = fopen("./data/users.txt", "r")) == NULL) {
-        printf("Error! opening file");
-        exit(1);
-    }
-
-    while (fscanf(fp, "%s %s", userChecker.name, userChecker.password) != EOF) {
-        if (strcmp(userChecker.name, u.name) == 0) {
-            fclose(fp);
-            // Return a dynamically allocated copy of the password
-            char *buff = malloc(strlen(userChecker.password) + 1);
-            if (buff != NULL) {
-                strcpy(buff, userChecker.password);
-            }
-            return buff;
-        }
-    }
-
-    fclose(fp);
-    return NULL;  // return NULL if no user found
+    // Attempt to login
+    loginUser(username, password);
 }
 
 // Main function to test registration and login
@@ -135,12 +151,9 @@ const char *getPassword(struct User u) {
 //         case 1:
 //             registerUser();  // Call register function
 //             break;
-//         case 2: {
-//             char username[50];
-//             char password[50];
-//             loginMenu(username, password);  // Call login function
+//         case 2:
+//             loginMenu();     // Call login function
 //             break;
-//         }
 //         default:
 //             printf("Invalid option selected.\n");
 //             break;
