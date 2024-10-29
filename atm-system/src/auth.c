@@ -126,3 +126,28 @@ const char *getPassword(struct User u) {
     return NULL;  // Return NULL if no user found
 }
 
+// Main function to test registration and login
+int main() {
+    int choice;
+    printf("1. Register\n2. Login\nChoose an option: ");
+    scanf("%d", &choice);
+
+    switch (choice) {
+        case 1:
+            registerUser();  // Call register function
+            break;
+        case 2: {
+            char username[50];
+            char password[50];
+            loginMenu(username, password);  // Call login function
+            
+            // Add login verification logic here if needed
+            break;
+        }
+        default:
+            printf("Invalid option selected.\n");
+            break;
+    }
+
+    return 0;
+}
