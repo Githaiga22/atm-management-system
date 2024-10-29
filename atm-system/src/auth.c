@@ -1,153 +1,180 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <termios.h>
 #include "header.h"
+#include <termios.h>
+
+#define MAX_USERNAME_SIZE 50
+#define MAX_PASSWORD_SIZE 50
+#define MAX_ID_SIZE 5
 
 char *USERS = "./data/users.txt";
 
-// Define the User struct
-struct User {
-    int id;
-    char name[50];      // Fixed size for simplicity
-    char password[50];  // Fixed size for simplicity
+void loginMenu(char a[MAX_USERNAME_SIZE], char pass[MAX_PASSWORD_SIZE]) {
+  struct termios oflags, nflags;
+
+  system("clear");
+  printf("\n\n\t\tBank Management System\n\n\t\tUser Login: ");
+  scanf("%s", a);
+
+  // disabling echo
+  tcgetattr(fileno(stdin), &oflags);
+  nflags = oflags;
+  nflags.c_lflag &= ~ECHO;
+  nflags.c_lflag |= ECHONL;
+
+  if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
+    perror("tcsetattr");
+    return exit(1);
+  }
+  printf("\n\t\tEnter the password: ");
+  scanf("%s", pass);
+
+  // restore terminal
+  if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
+    perror("tcsetattr");
+    return exit(1);
+  }
 };
 
-// Function to check if a username already exists in users.txt
-int checkUniqueName(const char* name) {
-    FILE *file = fopen(USERS, "r");
-    if (!file) {
-        printf("Error opening users.txt\n");
-        return -1;
-    }
-
-    struct User u;
-    while (fscanf(file, "%d %s %s", &u.id, u.name, u.password) != EOF) {
-        if (strcmp(u.name, name) == 0) {
-            fclose(file);
-            return 0;  // Name already exists
-        }
-    }
-    fclose(file);
-    return 1;  // Name is unique
-}
-
-// Function to register a new user
-void registerUser() {
-    char name[50];
-    char password[50];
-
-    printf("Enter username: ");
-    scanf("%49s", name); // Limit input to avoid overflow
-
-    // Check if the username already exists
-    if (checkUniqueName(name) == 0) {
-        printf("Error: Username already exists. Registration failed.\n");
-        return;
-    }
-
-    printf("Enter password: ");
-    scanf("%49s", password); // Limit input to avoid overflow
-
-    // Open the users.txt file for appending the new user
-    FILE *file = fopen(USERS, "a+");
-    if (!file) {
-        printf("Error opening users.txt\n");
-        return;
-    }
-
-    // Find the next available user ID
-    int newId = 0;
-    struct User u;
-    while (fscanf(file, "%d %s %s", &u.id, u.name, u.password) != EOF) {
-        newId = u.id + 1;  // Increment ID for new user
-    }
-
-    // Write the new user to the file
-    fprintf(file, "%d %s %s\n", newId, name, password);
-    printf("User %s registered successfully with ID %d.\n", name, newId);
-    
-    fclose(file);  // Close the file
-}
-
-// Function to handle user login
-void loginMenu(char username[50], char password[50]) {
-    struct termios oflags, nflags;
-
-    system("clear");
-    printf("\n\n\n\t\t\t\t   Bank Management System\n\t\t\t\t\t User Login:\n");
-    printf("Enter username: ");
-    scanf("%49s", username); // Limit input to avoid overflow
-
-    // Disabling echo for password input
-    tcgetattr(fileno(stdin), &oflags);
-    nflags = oflags;
-    nflags.c_lflag &= ~ECHO;
-    nflags.c_lflag |= ECHONL;
-
-    if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
-        perror("tcsetattr");
-        exit(1);
-    }
-
-    printf("Enter the password to login: ");
-    scanf("%49s", password); // Limit input to avoid overflow
-
-    // Restore terminal
-    if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
-        perror("tcsetattr");
-        exit(1);
-    }
-}
-
-// Function to get the stored password for a user
 const char *getPassword(struct User u) {
-    FILE *fp;
-    struct User userChecker;
+  FILE *fp;
+  struct User userChecker;
+  char id[MAX_ID_SIZE];
 
-    if ((fp = fopen(USERS, "r")) == NULL) {
-        printf("Error! opening file\n");
-        exit(1);
+  if ((fp = fopen("./data/users.txt", "r")) == NULL) {
+    printf("Error! opening file");
+    exit(1);
+  }
+
+  while (fscanf(fp, "%s %s %s", id, userChecker.name, userChecker.password) !=
+         EOF) {
+    if (strcmp(userChecker.name, u.name) == 0) {
+      fclose(fp);
+      u.id = atoi(id);
+      char *buff = userChecker.password;
+      return buff;
     }
+  }
 
-    while (fscanf(fp, "%d %s %s", &userChecker.id, userChecker.name, userChecker.password) != EOF) {
-        if (strcmp(userChecker.name, u.name) == 0) {
-            fclose(fp);
-            // Return a dynamically allocated copy of the password
-            char *buff = malloc(strlen(userChecker.password) + 1);
-            if (buff != NULL) {
-                strcpy(buff, userChecker.password);
-            }
-            return buff;
-        }
-    }
-
-    fclose(fp);
-    return NULL;  // Return NULL if no user found
+  fclose(fp);
+  return "no user found";
 }
 
-// Main function to test registration and login
-int main() {
-    int choice;
-    printf("1. Register\n2. Login\nChoose an option: ");
-    scanf("%d", &choice);
+int isUsernameUnique(char username[]) {
+  FILE *fp;
+  struct User userChecker;
 
-    switch (choice) {
-        case 1:
-            registerUser();  // Call register function
-            break;
-        case 2: {
-            char username[50];
-            char password[50];
-            loginMenu(username, password);  // Call login function
-            
-            // Add login verification logic here if needed
-            break;
-        }
-        default:
-            printf("Invalid option selected.\n");
-            break;
+  if ((fp = fopen("./data/users.txt", "r")) == NULL) {
+    printf("Error! opening file");
+    exit(1);
+  }
+
+  while (fscanf(fp, "%d %s %s", &userChecker.id, userChecker.name,
+                userChecker.password) != EOF) {
+    if (strcmp(userChecker.name, username) == 0) {
+      fclose(fp);
+      return 0;
     }
+  }
+  fclose(fp);
+  return 1;
+}
 
-    return 0;
+void registerMenu(char a[MAX_USERNAME_SIZE], char pass[MAX_PASSWORD_SIZE]) {
+  struct termios oflags, nflags;
+
+  do {
+    system("clear");
+    printf("\n\n\t\tBank Management System\n\n\t\t  User Registration\n");
+    printf("\n\n\t\tEnter Username: ");
+    scanf("%s", a);
+
+    if (!isUsernameUnique(a)) {
+      system("clear");
+      printf("\n\n\t\tBank Management System\n\n\t\t  User Registration\n");
+      printf("\n\t\tUsername already exists. \n");
+      handleFailedRegistration(a, pass);
+    }
+  } while (!isUsernameUnique(a));
+
+  // disabling echo
+  tcgetattr(fileno(stdin), &oflags);
+  nflags = oflags;
+  nflags.c_lflag &= ~ECHO;
+  nflags.c_lflag |= ECHONL;
+
+  if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
+    perror("tcsetattr");
+    exit(1);
+  }
+  printf("\n\t\tEnter Password: ");
+  scanf("%s", pass);
+
+  // restore terminal
+  if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
+    perror("tcsetattr");
+    exit(1);
+  }
+
+  FILE *fp;
+  struct User userChecker;
+  char id[MAX_ID_SIZE];
+  int lastUserID = 0;
+
+  if ((fp = fopen("./data/users.txt", "r")) == NULL) {
+    printf("Error! opening file");
+    exit(1);
+  }
+
+  while (fscanf(fp, "%s %s %s", id, userChecker.name, userChecker.password) !=
+         EOF) {
+    lastUserID = atoi(id);
+  }
+
+  fclose(fp);
+
+  if ((fp = fopen("./data/users.txt", "a")) == NULL) {
+    printf("Error! opening file");
+    exit(1);
+  }
+
+  lastUserID++;
+
+  fprintf(fp, "%d %s %s\n", lastUserID, a, pass);
+
+  fclose(fp);
+}
+
+void handleFailedLogin(struct User *u) {
+  int option;
+  do {
+    printf("\n\t\tEnter 0 to try again, 1 to exit! \n\n");
+    scanf("%d", &option);
+
+    if (option == 0) {
+      initMenu(u);
+      break;
+    } else if (option == 1) {
+      exit(1);
+      break;
+    } else {
+      printf("Insert a valid operation!\n");
+    }
+  } while (option < 0 || option > 1);
+}
+
+void handleFailedRegistration(char a[MAX_USERNAME_SIZE],
+                              char pass[MAX_PASSWORD_SIZE]) {
+  int option;
+  do {
+    printf("\n\t\tEnter 0 to try again, 1 to exit!\n\n");
+    scanf("%d", &option);
+    if (option == 0) {
+      registerMenu(a, pass);
+      break;
+    } else if (option == 1) {
+      exit(1);
+      break;
+    } else {
+      printf("\t\tInsert a valid operation!\n");
+    }
+  } while (option < 0 || option > 1);
 }
