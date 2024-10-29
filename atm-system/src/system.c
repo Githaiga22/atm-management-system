@@ -1,23 +1,21 @@
+#define MAX_RECORDS 100
+#define MAX_USERNAME_SIZE 50
+#define MAX_PASSWORD_SIZE 50
+#define MAX_ID_SIZE 5
+#define MAX_COUNTRY_SIZE 100
+#define MAX_TRANSACTION_TYPE_SIZE 10
+
 #include "header.h"
 
 const char *RECORDS = "./data/records.txt";
 
 // Function to read an account from the file
-int getAccountFromFile(FILE *pf, char *userName, struct Record *r) {
-    int result = fscanf(pf, "%d %s %d/%d/%d %s %d %lf %s",
-                        &r->accountNbr, userName,
-                        &r->deposit.month, &r->deposit.day, &r->deposit.year,
-                        r->country, &r->phone, &r->amount, r->accountType);
-    
-    if (result == EOF) {
-        return 0; // End of file reached
-    } else if (result != 9) {
-        printf("Error reading account from file.\n");
-        return 0; // Failed to read properly
-    }
-
-    printf("Read account: %d (user: %s)\n", r->accountNbr, userName); // DEBUGGING PRINT
-    return 1;
+int getAccountFromFile(FILE *ptr, char name[MAX_USERNAME_SIZE],
+                       struct Record *r) {
+  return fscanf(ptr, "%d %d %s %d %d/%d/%d %s %d %lf %s", &r->id, &r->userId,
+                name, &r->accountNbr, &r->deposit.month, &r->deposit.day,
+                &r->deposit.year, r->country, &r->phone, &r->amount,
+                r->accountType) != EOF;
 }
 
 // Function to save an account to the file
