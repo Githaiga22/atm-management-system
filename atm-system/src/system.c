@@ -8,7 +8,7 @@
 #define MAX_TRANSACTION_TYPE_SIZE 10
 
 const char *RECORDS = "./data/records.txt";
-
+// Reads a single account record from a file.
 int getAccountFromFile(FILE *ptr, char name[MAX_USERNAME_SIZE],
                        struct Record *r) {
   return fscanf(ptr, "%d %d %s %d %d/%d/%d %s %d %lf %s", &r->id, &r->userId,
@@ -16,19 +16,19 @@ int getAccountFromFile(FILE *ptr, char name[MAX_USERNAME_SIZE],
                 &r->deposit.year, r->country, &r->phone, &r->amount,
                 r->accountType) != EOF;
 }
-
+// Writes a user's account information to a file.
 void saveAccountToFile(FILE *ptr, struct User u, struct Record r) {
   fprintf(ptr, "%d %d %s %d %d/%d/%d %s %d %.2lf %s\n\n", r.id, u.id, u.name,
           r.accountNbr, r.deposit.month, r.deposit.day, r.deposit.year,
           r.country, r.phone, r.amount, r.accountType);
 }
-
+// Updates an existing account record in the file.
 void updateUserAccountInFile(FILE *ptr, struct Record r) {
   fprintf(ptr, "%d %d %s %d %d/%d/%d %s %d %.2lf %s\n\n", r.id, r.userId,
           r.name, r.accountNbr, r.deposit.month, r.deposit.day, r.deposit.year,
           r.country, r.phone, r.amount, r.accountType);
 }
-
+//  Prompts the user to either retry a failed operation or return to the main menu.
 void stayOrReturn(int notGood, void f(struct User u), struct User u) {
   int option;
   do {
@@ -54,7 +54,7 @@ void stayOrReturn(int notGood, void f(struct User u), struct User u) {
     }
   } while (option < 0 || option > 2);
 }
-
+//Displays a success message and allows the user to navigate back to the main menu 
 void success(struct User u) {
   int option;
 
@@ -73,7 +73,7 @@ void success(struct User u) {
     }
   }
 }
-
+//  Retrieves the user ID associated with a given username from a user data file.
 int getUserId(const char *username) {
   FILE *fp = fopen("./data/users.txt", "r");
   if (!fp) {
@@ -92,7 +92,7 @@ int getUserId(const char *username) {
   fclose(fp);
   return -1;
 }
-
+// Checks if the user has any accounts in the records file.
 int doesUserHaveAccounts(struct User u) {
   struct Record r;
   FILE *pf = fopen(RECORDS, "r");
@@ -110,7 +110,7 @@ int doesUserHaveAccounts(struct User u) {
   fclose(pf);
   return 0;
 }
-
+// createNewAccount func Allows a user to create a new account, ensuring it doesn't already exist.
 void createNewAccount(struct User u) {
   struct Record r;
   struct Record cr;
@@ -183,7 +183,7 @@ void createNewAccount(struct User u) {
     }
   } while (1);
 }
-
+// checkAllAccounts function Displays all accounts associated with the user.
 void checkAllAccounts(struct User u) {
   if (!doesUserHaveAccounts(u)) {
     system("clear");
@@ -228,7 +228,7 @@ void checkAllAccounts(struct User u) {
 
   success(u);
 }
-
+//updateAccountInformation  Allows the user to update information for a specified account.
 void updateAccountInformation(struct User u) {
   if (!doesUserHaveAccounts(u)) {
     system("clear");
@@ -318,7 +318,11 @@ void updateAccountInformation(struct User u) {
   printf("\n\t\t✔ Account information updated successfully.\n");
   success(u);
 }
-
+/*
+ checkAccountDetails function handles checking user account details, verifying account existence, 
+ calculating potential interest, and managing user interactions and outputs based on the account type.
+  It includes robust error handling and clear navigation for the user.
+*/
 void checkAccountDetails(struct User u) {
   if (!doesUserHaveAccounts(u)) {
     system("clear");
@@ -397,7 +401,13 @@ void checkAccountDetails(struct User u) {
   }
   success(u);
 }
-
+/*
+The makeTransaction function performs a financial transaction for a user.
+ It checks for account existence, verifies that the account type allows transactions, processes the transaction (deposit or withdrawal),
+  and updates the account records accordingly.
+   Each step has error handling to ensure the integrity of the transaction process,
+    and user feedback is provided throughout.
+*/
 void makeTransaction(struct User u) {
   if (!doesUserHaveAccounts(u)) {
     system("clear");
@@ -502,7 +512,14 @@ void makeTransaction(struct User u) {
   printf("\n\t\t✔ Transaction successful.\n");
   success(u);
 }
-
+/*
+removeAccount function  performs several key tasks
+Check for User Accounts: It first verifies if the user has any accounts.
+Input Account Number: It prompts the user to input the account number they wish to remove.
+Check Account Existence: It searches for the specified account in a file.
+Remove the Account: If the account exists, it removes it from the records and updates the file accordingly.
+Feedback: It provides feedback to the user regarding the success or failure of the operation.
+*/
 void removeAccount(struct User u) {
   if (!doesUserHaveAccounts(u)) {
     system("clear");
@@ -571,6 +588,12 @@ void removeAccount(struct User u) {
   success(u);
 }
 
+/*
+transferOwnership  function is designed to transfer the ownership of a specified account from one user to another. 
+The process involves checking if the user has accounts, 
+reading account data from a file, 
+and then modifying that data to reflect the new ownership.
+*/
 void transferOwnership(struct User u) {
   if (!doesUserHaveAccounts(u)) {
     system("clear");
