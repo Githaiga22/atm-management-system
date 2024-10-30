@@ -6,7 +6,7 @@
 #define MAX_ID_SIZE 5
 
 char *USERS = "./data/users.txt";
-
+// The loginMenu function handles the login process for a user. It prompts the user for their username and password, using a technique to hide the password input.
 void loginMenu(char a[MAX_USERNAME_SIZE], char pass[MAX_PASSWORD_SIZE]) {
   struct termios oflags, nflags;
 
@@ -14,11 +14,11 @@ void loginMenu(char a[MAX_USERNAME_SIZE], char pass[MAX_PASSWORD_SIZE]) {
   printf("\n\n\t\tBank Management System\n\n\t\tUser Login: ");
   scanf("%s", a);
 
-  // disabling echo
-  tcgetattr(fileno(stdin), &oflags);
+  // Password Input with Hidden Characters
+  tcgetattr(fileno(stdin), &oflags);     // Get current terminal settings
   nflags = oflags;
-  nflags.c_lflag &= ~ECHO;
-  nflags.c_lflag |= ECHONL;
+  nflags.c_lflag &= ~ECHO;   // Disable echo for hidden input
+  nflags.c_lflag |= ECHONL;     // Enable newline after input
 
   if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
     perror("tcsetattr");
@@ -33,7 +33,7 @@ void loginMenu(char a[MAX_USERNAME_SIZE], char pass[MAX_PASSWORD_SIZE]) {
     return exit(1);
   }
 };
-
+// This function retrieves the password for a given user from the users.txt file to verify the login.
 const char *getPassword(struct User u) {
   FILE *fp;
   struct User userChecker;
@@ -57,7 +57,7 @@ const char *getPassword(struct User u) {
   fclose(fp);
   return "no user found";
 }
-
+// This function checks if a username already exists in users.txt, which is useful during user registration.
 int isUsernameUnique(char username[]) {
   FILE *fp;
   struct User userChecker;
@@ -78,6 +78,10 @@ int isUsernameUnique(char username[]) {
   return 1;
 }
 
+/*
+registerMenu function handles the user registration process in this application, managing input collection,
+ security for password entry, and file operations for storing user data
+ */
 void registerMenu(char a[MAX_USERNAME_SIZE], char pass[MAX_PASSWORD_SIZE]) {
   struct termios oflags, nflags;
 
@@ -95,11 +99,11 @@ void registerMenu(char a[MAX_USERNAME_SIZE], char pass[MAX_PASSWORD_SIZE]) {
     }
   } while (!isUsernameUnique(a));
 
-  // disabling echo
-  tcgetattr(fileno(stdin), &oflags);
+  // Password Input with Hidden Characters
+  tcgetattr(fileno(stdin), &oflags); // Get current terminal settings
   nflags = oflags;
-  nflags.c_lflag &= ~ECHO;
-  nflags.c_lflag |= ECHONL;
+  nflags.c_lflag &= ~ECHO;     // Disable echo for hidden input
+  nflags.c_lflag |= ECHONL;   // Enable newline after input
 
   if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
     perror("tcsetattr");
@@ -113,7 +117,7 @@ void registerMenu(char a[MAX_USERNAME_SIZE], char pass[MAX_PASSWORD_SIZE]) {
     perror("tcsetattr");
     exit(1);
   }
-
+//  File Operations to Store User Data
   FILE *fp;
   struct User userChecker;
   char id[MAX_ID_SIZE];
@@ -142,7 +146,7 @@ void registerMenu(char a[MAX_USERNAME_SIZE], char pass[MAX_PASSWORD_SIZE]) {
 
   fclose(fp);
 }
-
+// This function provides options for retrying or exiting after a failed login attempt.
 void handleFailedLogin(struct User *u) {
   int option;
   do {
@@ -160,7 +164,7 @@ void handleFailedLogin(struct User *u) {
     }
   } while (option < 0 || option > 1);
 }
-
+// this function provides options for retrying or exiting if the username entered during registration already exists.
 void handleFailedRegistration(char a[MAX_USERNAME_SIZE],
                               char pass[MAX_PASSWORD_SIZE]) {
   int option;
